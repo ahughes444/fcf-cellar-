@@ -278,8 +278,19 @@ function wineColor(wine) {
   return "#1a1a2e";
 }
 
+// ─── Responsive Hook ─────────────────────────────────────────────
+function useScreenSize() {
+  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return { ...size, isMobile: size.w < 600, isTablet: size.w >= 600 && size.w < 1024, isTouchDevice: 'ontouchstart' in window };
+}
+
 // ─── Styles ───────────────────────────────────────────────────────
-const inputStyle = { background: "#f8f6fc", border: "1px solid #d0c4e0", borderRadius: 6, padding: "8px 12px", color: "#2a2040", fontSize: 13, width: "100%", boxSizing: "border-box" };
+const inputStyle = { background: "#f8f6fc", border: "1px solid #d0c4e0", borderRadius: 6, padding: "8px 12px", color: "#2a2040", fontSize: 16, width: "100%", boxSizing: "border-box" };
 const labelStyle = { fontSize: 11, color: "#7a6a8e", marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
 function btnStyle(bg, color) { return { background: bg, color, border: `1px solid ${color}44`, borderRadius: 6, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 500 }; }
 
@@ -296,6 +307,7 @@ function getTotalSlots() {
 
 // ─── Main App ─────────────────────────────────────────────────────
 function App() {
+  const screen = useScreenSize();
   const [wines, setWines] = useState(() => loadWines());
   const [activeTab, setActiveTab] = useState("cellar");
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -383,39 +395,43 @@ function App() {
   return (
     <div style={{ minHeight: "100vh" }}>
       {/* Header */}
-      <div className="app-header" style={{ borderBottom: "1px solid #e8e0e0", padding: "16px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-          <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#722f37", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>🍷</span>
+      <div style={{ borderBottom: "1px solid #e8e0e0", padding: screen.isMobile ? "12px" : "16px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#722f37", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}>🍷</span>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: screen.isMobile ? 15 : 20, fontWeight: 700, color: "#2a2040" }}>
+                {screen.isMobile ? "FCF Cellar" : "Fog City Ferment's Cellar"}
+              </h1>
+              <span style={{ fontSize: 10, color: "#8a7a9e" }}>{wineCount} bottles · {totalSlots - wineCount} open</span>
+            </div>
           </div>
-          <div style={{ minWidth: 0 }}>
-            <h1 className="app-title" style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#2a2040", letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Fog City Ferment's Cellar</h1>
-            <span style={{ fontSize: 11, color: "#8a7a9e" }}>{wineCount} bottle{wineCount !== 1 ? "s" : ""} · {totalSlots - wineCount} open · {totalSlots} capacity</span>
+          <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+            {!screen.isMobile && <button onClick={exportData} style={btnStyle("#f4f0fa", "#5a4a70")}>Export</button>}
+            {!screen.isMobile && <label style={{ ...btnStyle("#f4f0fa", "#5a4a70"), display: "inline-flex", alignItems: "center", cursor: "pointer" }}>
+              Import <input type="file" accept=".json" onChange={importData} style={{ display: "none" }} />
+            </label>}
+            <button onClick={() => setShowSettings(true)} style={{ ...btnStyle("#f4f0fa", "#5a4a70"), fontSize: 16, padding: "4px 10px" }} title="Settings">⚙</button>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <button onClick={exportData} style={btnStyle("#f4f0fa", "#5a4a70")}>Export</button>
-          <label style={{ ...btnStyle("#f4f0fa", "#5a4a70"), display: "inline-flex", alignItems: "center", cursor: "pointer" }}>
-            Import <input type="file" accept=".json" onChange={importData} style={{ display: "none" }} />
-          </label>
-          <button onClick={() => setShowSettings(true)} style={{ ...btnStyle("#f4f0fa", "#5a4a70"), fontSize: 16, padding: "4px 10px" }} title="Settings">⚙</button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="tab-bar" style={{ display: "flex", gap: 0, borderBottom: "1px solid #e8e0e0", background: "#ffffff", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        {[{id:"cellar",label:"🏠 Cellar",short:"Cellar"},{id:"table",label:"📋 Table",short:"Table"},{id:"manage",label:"➕ Add/Search",short:"Add"}].map(t => (
+      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #e8e0e0", background: "#ffffff" }}>
+        {[{id:"cellar",icon:"🏠",label:"Cellar"},{id:"table",icon:"📋",label:"Table"},{id:"manage",icon:"➕",label:"Add"}].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
-            style={{ padding: "12px 18px", background: "transparent", color: activeTab === t.id ? "#722f37" : "#8a7a9e", border: "none", borderBottom: activeTab === t.id ? "2px solid #722f37" : "2px solid transparent", cursor: "pointer", fontSize: 14, fontWeight: activeTab === t.id ? 600 : 400, transition: "all 0.2s", letterSpacing: 0.3, whiteSpace: "nowrap", flexShrink: 0 }}>
-            {t.label}
+            style={{ flex: 1, padding: screen.isMobile ? "10px 8px" : "12px 18px", background: "transparent", color: activeTab === t.id ? "#722f37" : "#8a7a9e", border: "none", borderBottom: activeTab === t.id ? "2px solid #722f37" : "2px solid transparent", cursor: "pointer", fontSize: screen.isMobile ? 13 : 14, fontWeight: activeTab === t.id ? 600 : 400, transition: "all 0.2s", textAlign: "center" }}>
+            {t.icon} {t.label}
           </button>
         ))}
       </div>
 
-      <div style={{ padding: "16px", maxWidth: 1400, margin: "0 auto" }}>
-        {activeTab === "cellar" && <CellarView winesBySlot={winesBySlot} onSelect={setSelectedSlot} />}
-        {activeTab === "table" && <TableView wines={filteredWines} searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchField={searchField} setSearchField={setSearchField} onSelect={setSelectedSlot} />}
-        {activeTab === "manage" && <ManageView wines={wines} setWine={setWine} removeWine={removeWine} winesBySlot={winesBySlot} searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchField={searchField} setSearchField={setSearchField} filteredWines={filteredWines} onSelect={setSelectedSlot} apiKey={apiKey} />}
+      <div style={{ padding: screen.isMobile ? "10px 8px" : "16px", maxWidth: 1400, margin: "0 auto" }}>
+        {activeTab === "cellar" && <CellarView winesBySlot={winesBySlot} onSelect={setSelectedSlot} screen={screen} />}
+        {activeTab === "table" && <TableView wines={filteredWines} searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchField={searchField} setSearchField={setSearchField} onSelect={setSelectedSlot} screen={screen} />}
+        {activeTab === "manage" && <ManageView wines={wines} setWine={setWine} removeWine={removeWine} winesBySlot={winesBySlot} searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchField={searchField} setSearchField={setSearchField} filteredWines={filteredWines} onSelect={setSelectedSlot} apiKey={apiKey} screen={screen} />}
       </div>
 
       {selectedSlot && (
@@ -500,11 +516,12 @@ function App() {
 }
 
 // ─── Visual Cellar ────────────────────────────────────────────────
-function CellarView({ winesBySlot, onSelect }) {
+function CellarView({ winesBySlot, onSelect, screen }) {
   const [hoveredSlot, setHoveredSlot] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tappedSlot, setTappedSlot] = useState(null);
-  const isTouchDevice = 'ontouchstart' in window;
+  const isTouchDevice = screen.isTouchDevice;
+  const isMobile = screen.isMobile;
 
   const handleSlotTap = (rack, row, col) => {
     if (isTouchDevice) {
@@ -540,10 +557,10 @@ function CellarView({ winesBySlot, onSelect }) {
 
       {/* Rack Layout - floor plan style */}
       <div className="rack-container" style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-        <RackGrid rack="B" label="Rack B · East Wall" winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="left" isTouchDevice={isTouchDevice} />
-        <RackGrid rack="A" label="Rack A · South Wall" winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="right" isTouchDevice={isTouchDevice} />
-        <RackGrid rack="C" label="Rack C · West Wall" winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="center" isTouchDevice={isTouchDevice} />
-        <RackGrid rack="Mag" label="Magnums" winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="center" isTouchDevice={isTouchDevice} />
+        <RackGrid rack="B" label={isMobile ? "B · East" : "Rack B · East Wall"} winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="left" isTouchDevice={isTouchDevice} screen={screen} />
+        <RackGrid rack="A" label={isMobile ? "A · South" : "Rack A · South Wall"} winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="right" isTouchDevice={isTouchDevice} screen={screen} />
+        <RackGrid rack="C" label={isMobile ? "C · West" : "Rack C · West Wall"} winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="center" isTouchDevice={isTouchDevice} screen={screen} />
+        <RackGrid rack="Mag" label="Magnums" winesBySlot={winesBySlot} onSelect={handleSlotTap} hoveredSlot={hoveredSlot} setHoveredSlot={setHoveredSlot} align="center" isTouchDevice={isTouchDevice} screen={screen} />
       </div>
 
       {/* Tooltip */}
@@ -573,11 +590,12 @@ function CellarView({ winesBySlot, onSelect }) {
   );
 }
 
-function RackGrid({ rack, label, winesBySlot, onSelect, hoveredSlot, setHoveredSlot, align, isTouchDevice }) {
+function RackGrid({ rack, label, winesBySlot, onSelect, hoveredSlot, setHoveredSlot, align, isTouchDevice, screen }) {
   const maxRow = RACK_ROWS[rack];
-  const cellSize = rack === "A" ? 18 : rack === "B" ? 20 : 24;
-  const gap = 2;
+  const gap = 1;
   const rows = [];
+  const isMobile = screen.isMobile;
+  const isTablet = screen.isTablet;
 
   // Count wines in this rack
   let rackCount = 0;
@@ -590,11 +608,12 @@ function RackGrid({ rack, label, winesBySlot, onSelect, hoveredSlot, setHoveredS
     }
   }
 
-  // Responsive cell sizing — smaller on narrow screens
-  const isMobile = window.innerWidth < 768;
-  const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-  const cellW = isMobile ? 30 : isTablet ? 44 : 58;
-  const cellH = isMobile ? 20 : isTablet ? 26 : 32;
+  // Responsive cell sizing — fit within screen width
+  // Rack A has max 22 cols, so on a ~390px phone: (390 - 40 padding) / 22 = ~15px per cell
+  const maxCols = rack === "A" ? 22 : rack === "B" ? 10 : rack === "C" ? 4 : 2;
+  const availableWidth = isMobile ? screen.w - 50 : isTablet ? screen.w - 80 : 1400;
+  const cellW = isMobile ? Math.min(Math.floor(availableWidth / maxCols) - gap, 24) : isTablet ? 44 : 58;
+  const cellH = isMobile ? Math.min(cellW, 18) : isTablet ? 26 : 32;
 
   for (let r = maxRow; r >= 1; r--) {
     const cols = getColumnsForRow(rack, r);
@@ -638,26 +657,26 @@ function RackGrid({ rack, label, winesBySlot, onSelect, hoveredSlot, setHoveredS
     }
     rows.push(
       <div key={r} style={{ display: "flex", gap, justifyContent: align === "center" ? "center" : align === "left" ? "flex-start" : "flex-end", alignItems: "center" }}>
-        <span style={{ fontSize: 9, color: "#8a7a9e", width: 18, textAlign: "right", marginRight: 3, flexShrink: 0, fontWeight: 500 }}>{r}</span>
+        <span style={{ fontSize: isMobile ? 7 : 9, color: "#8a7a9e", width: isMobile ? 12 : 18, textAlign: "right", marginRight: isMobile ? 1 : 3, flexShrink: 0, fontWeight: 500 }}>{r}</span>
         {cells}
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#f4f0fa", border: "1px solid #d0c4e0", borderRadius: 12, padding: 14, overflowX: "auto" }}>
-      <div style={{ textAlign: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#5a2890" }}>{label}</div>
-        <div style={{ fontSize: 10, color: "#8a7a9e" }}>{rackCount}/{rackTotal} slots filled</div>
+    <div style={{ background: "#f4f0fa", border: "1px solid #d0c4e0", borderRadius: isMobile ? 8 : 12, padding: isMobile ? 6 : 14, overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%" }}>
+      <div style={{ textAlign: "center", marginBottom: isMobile ? 4 : 8 }}>
+        <div style={{ fontSize: isMobile ? 12 : 14, fontWeight: 600, color: "#5a2890" }}>{label}</div>
+        <div style={{ fontSize: isMobile ? 9 : 10, color: "#8a7a9e" }}>{rackCount}/{rackTotal} filled</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap, minWidth: "fit-content" }}>{rows}</div>
       {/* Column numbers along the bottom */}
-      <div style={{ display: "flex", gap, justifyContent: align === "center" ? "center" : align === "left" ? "flex-start" : "flex-end", marginTop: 3 }}>
+      {!isMobile && <div style={{ display: "flex", gap, justifyContent: align === "center" ? "center" : align === "left" ? "flex-start" : "flex-end", marginTop: 3 }}>
         <span style={{ width: 18, marginRight: 3, flexShrink: 0 }}></span>
         {Array.from({ length: getColumnsForRow(rack, 1) }, (_, i) => (
           <div key={i} style={{ width: cellW, textAlign: "center", fontSize: 8, color: "#8a7a9e", fontWeight: 500 }}>{String(i + 1).padStart(2, "0")}</div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -782,7 +801,7 @@ function WineModal({ slot, wine, onSave, onDelete, onClose, apiKey }) {
 }
 
 // ─── Table View ───────────────────────────────────────────────────
-function TableView({ wines, searchTerm, setSearchTerm, searchField, setSearchField, onSelect }) {
+function TableView({ wines, searchTerm, setSearchTerm, searchField, setSearchField, onSelect, screen }) {
   const [sortCol, setSortCol] = useState("location");
   const [sortDir, setSortDir] = useState("asc");
 
@@ -807,23 +826,24 @@ function TableView({ wines, searchTerm, setSearchTerm, searchField, setSearchFie
     });
   }, [wines, sortCol, sortDir]);
 
-  const columns = [
-    { key: "location", label: "Location", w: 85 }, { key: "producer", label: "Producer", w: 150 },
-    { key: "vineyard", label: "Vineyard", w: 130 }, { key: "vintage", label: "Vintage", w: 70 },
+  const allColumns = [
+    { key: "location", label: "Loc", w: 65, mobile: true }, { key: "producer", label: "Producer", w: 150, mobile: true },
+    { key: "vineyard", label: "Vineyard", w: 130 }, { key: "vintage", label: "Yr", w: 50, mobile: true },
     { key: "grape", label: "Grape", w: 120 }, { key: "region", label: "Region", w: 100 },
     { key: "country", label: "Country", w: 80 }, { key: "pricePaid", label: "Paid", w: 70 },
-    { key: "marketPrice", label: "Market", w: 70 }, { key: "cellarTrackerRating", label: "Rating", w: 60 },
+    { key: "marketPrice", label: "Mkt", w: 55, mobile: true }, { key: "cellarTrackerRating", label: "CT", w: 40 },
   ];
+  const columns = screen.isMobile ? allColumns.filter(c => c.mobile) : allColumns;
 
-  const searchOpts = [{ value: "all", label: "All Fields" }, ...columns.map(c => ({ value: c.key, label: c.label }))];
+  const searchOpts = [{ value: "all", label: "All Fields" }, ...allColumns.map(c => ({ value: c.key, label: c.label }))];
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={searchField} onChange={e => setSearchField(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={searchField} onChange={e => setSearchField(e.target.value)} style={{ ...inputStyle, width: screen.isMobile ? "100%" : 150 }}>
           {searchOpts.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
         </select>
-        <input placeholder="Search wines..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...inputStyle, width: 300 }} />
+        <input placeholder="Search wines..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...inputStyle, width: screen.isMobile ? "100%" : 300 }} />
         <span style={{ fontSize: 12, color: "#8a7a9e" }}>{sorted.length} wine{sorted.length !== 1 ? "s" : ""}</span>
       </div>
 
@@ -863,7 +883,7 @@ function TableView({ wines, searchTerm, setSearchTerm, searchField, setSearchFie
 }
 
 // ─── Add / Search View ────────────────────────────────────────────
-function ManageView({ wines, setWine, removeWine, winesBySlot, searchTerm, setSearchTerm, searchField, setSearchField, filteredWines, onSelect, apiKey }) {
+function ManageView({ wines, setWine, removeWine, winesBySlot, searchTerm, setSearchTerm, searchField, setSearchField, filteredWines, onSelect, apiKey, screen }) {
   const [form, setForm] = useState({ rack: "A", row: "1", col: "1", producer: "", vineyard: "", vintage: "", grape: "", region: "", country: "", provenance: "", pricePaid: "", marketPrice: "", cellarTrackerRating: "", labelImageUrl: "", notes: "" });
   const [msg, setMsg] = useState(null);
   const [scanning, setScanning] = useState(false);
